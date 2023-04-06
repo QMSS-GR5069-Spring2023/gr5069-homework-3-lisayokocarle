@@ -51,7 +51,7 @@ drivers.info()
 # COMMAND ----------
 
 ### Looking at drivers df
-drivers.head()
+drivers.info()
 
 
 # COMMAND ----------
@@ -81,28 +81,30 @@ races.info()
 pit_stops_cleaned = pit_stops.dropna()
 
 ### Grouping cleaned df by driverId and getting mean
-average_df = pit_stops_cleaned.groupby('driverId')[['milliseconds']].mean()
+average_driver_race = pit_stops_cleaned.groupby(['driverId','raceId'])[['milliseconds']].mean()
 
-average_df
+### Rounding milliseconds up
+average_driver_race.milliseconds = average_driver_race.milliseconds.round()
 
+average_driver_race
 
 # COMMAND ----------
 
-### Extracting Drivers info from Drivers df
+### Pulling out Driver names from driver df
 driver_info = drivers[['driverId', 'forename', 'surname']]
 
-### Merging extracted driver info with average pit stop df
-average_df.merge(driver_info, on = 'driverId', how = 'left')
+### Pulling out race results from results df
+race_results = results[['raceId', 'driverId', 'rank']]
 
-### Checking the newly created df
-average_df
+### Pulling out race name from races df
+race_name = races[['raceId', 'name']]
 
-### Rounding milliseconds up
-average_df.milliseconds = average_df.milliseconds.round()
+### Merging driver_info with race_results
+driver_race_results = race_results.merge(driver_info, how = "left", on = 'driverId')
 
-### Checking once more
-average_df.info()
-average_df
+### Merging average driver time df with merged race_results
+merged_avg = pd.merge(average_driver_race, driver_race_results, how = "left", on = ['driverId', 'raceId'])
+merged_avg.head()
 
 # COMMAND ----------
 
@@ -110,4 +112,15 @@ average_df
 
 # COMMAND ----------
 
-### Pulling out 
+### Merging race name into df
+merged_avg_race = pd.merge(merged_avg, race_name, how = 'left', on = 'raceId')
+
+### Ranking average time spent at pit stop based on who won race
+merged_avg_race['pit_time_rank'] = merged_avg_race.groupby(['name','rank'])['milliseconds'].rank(method = 'max')
+
+### Changing name of name colum to race name
+merged_avg_race.rename(columns = {'name':'race_name'})
+
+# COMMAND ----------
+
+
