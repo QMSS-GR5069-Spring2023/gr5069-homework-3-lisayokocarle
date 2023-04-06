@@ -136,3 +136,45 @@ driver_code.dropna()
 ### Insert driver codes based on driver df
 code_merged_df = pd.merge(merged_avg_race, driver_code, how = 'left', on = 'driverId')
 code_merged_df.info()
+
+# COMMAND ----------
+
+# MAGIC %md ## 4. Who is the youngest and oldest driver for each race? Create a new column named "Age"
+
+# COMMAND ----------
+
+### Pulling driverId and dob from Drivers df
+driver_dob = drivers[['driverId', 'dob']]
+
+### Pulling raceId and race dates from race df
+race_date = races[['raceId', 'date']]
+
+### Merging dobs to aggregated df
+dob_merged_df = pd.merge(code_merged_df, driver_dob, how = 'left', on = 'driverId')
+
+### Merging race date to aggregated df
+race_dob_merged = pd.merge(dob_merged_df, race_date, how = 'left', on = 'raceId')
+
+### renaming date to race_date
+race_dob_merged.rename(columns = {'date':'race_date'}, inplace = True)
+
+### Converting to dob and race date to DateTime
+race_dob_merged['dob'] = pd.to_datetime(race_dob_merged['dob'])
+race_dob_merged['race_date'] = pd.to_datetime(race_dob_merged['race_date'])
+
+### Calcualting age
+race_dob_merged['age_at_race'] = race_dob_merged['race_date'] - race_dob_merged['dob']
+race_dob_merged = race_dob_merged.astype({'age_at_race':'int'})
+
+race_dob_merged.info()
+
+# COMMAND ----------
+
+### Ranking youngest and oldest driver for each race
+### Ranking average time spent at pit stop based on who won race
+race_dob_merged['age_rank'] = race_dob_merged.groupby(['raceId'])['age_at_race'].rank(method = 'max')
+
+youngest_oldest_race = race_dob_merged.groupby(['raceId'])['age_rank'].agg(['min', 'max'])
+
+youngest_oldest_race
+
