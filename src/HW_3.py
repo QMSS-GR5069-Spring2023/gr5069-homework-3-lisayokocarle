@@ -119,8 +119,20 @@ merged_avg_race = pd.merge(merged_avg, race_name, how = 'left', on = 'raceId')
 merged_avg_race['pit_time_rank'] = merged_avg_race.groupby(['name','rank'])['milliseconds'].rank(method = 'max')
 
 ### Changing name of name colum to race name
-merged_avg_race.rename(columns = {'name':'race_name'})
+merged_avg_race.rename(columns = {'name':'race_name'}, inplace = True)
 
 # COMMAND ----------
 
+# MAGIC %md ## 3. Insert the missing code for drivers based on the 'drivers' dataset
 
+# COMMAND ----------
+
+### Pulling codes from drivers df
+driver_code = drivers[['driverId', 'code']]
+
+### seeing if there were any NA columns
+driver_code.dropna()
+
+### Insert driver codes based on driver df
+code_merged_df = pd.merge(merged_avg_race, driver_code, how = 'left', on = 'driverId')
+code_merged_df.info()
