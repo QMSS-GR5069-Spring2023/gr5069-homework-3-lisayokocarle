@@ -25,10 +25,6 @@ pd.__version__
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
 # MAGIC %md ## Reading in Dataset
 
 # COMMAND ----------
@@ -69,11 +65,34 @@ drivers.info()
 
 # COMMAND ----------
 
+status.head()
+
+# COMMAND ----------
+
+driver_standings
+
+# COMMAND ----------
+
+constructors.head()
+
+# COMMAND ----------
+
+seasons.head()
+
+# COMMAND ----------
+
 ### Looking at results df
 results.info()
 
+# COMMAND ----------
+
 ### Looking at the columns that will help me connect driver with race and rank
 results[['raceId', 'driverId', 'rank']]
+
+# COMMAND ----------
+
+### Looking at results df
+results.head()
 
 # COMMAND ----------
 
@@ -200,3 +219,45 @@ oldest_racers
 # COMMAND ----------
 
 # MAGIC %md ## 5. For a given race, which driver has the most wins and losses?
+
+# COMMAND ----------
+
+### Converting results df, rank column to integer
+results['rank'] = pd.to_numeric(results['rank'], errors = 'coerce')
+
+### Checking to see how rank column came out
+results['rank'].unique()
+results.info()
+
+### Converting column to float
+
+
+# COMMAND ----------
+
+### Aggregating results data to sum the number of wins each driver had
+list_of_dict = {}
+
+for index, rows in results.iterrows():
+    list_of_dict[rows['driverId']] = {
+        'wins': 0, 
+        'losses': 0
+    }
+    try:
+        int(rows['rank']) == 1
+        list_of_dict[rows['driverId']]['wins'] += 1
+    except ValueError:
+        x  = 0
+    else:
+        int(rows['rank']) > 1
+        list_of_dict[rows['driverId']]['losses'] +=1
+        
+        
+
+# COMMAND ----------
+
+### Checking dictionary
+list_of_dict
+
+# COMMAND ----------
+
+
