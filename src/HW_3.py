@@ -3,14 +3,28 @@
 
 # COMMAND ----------
 
+### Installing latest version of Pandas and awswrangler
+dbutils.library.installPyPI("pandas")
+dbutils.library.installPyPI("awswrangler")
+
+# COMMAND ----------
+
 ### Loading in packages
 import pandas as pd
+import numpy as np
 import boto3
 import sys
 import csv
 import io
 import os
+import datetime as dt
 import awswrangler as wr
+
+
+pd.__version__
+
+# COMMAND ----------
+
 
 
 # COMMAND ----------
@@ -43,7 +57,6 @@ status = wr.s3.read_csv('s3://columbia-gr5069-main/raw/status.csv')
 # COMMAND ----------
 
 ### Looking at the data held in in the dataframes loaded in
-
 pit_stops.info()
 
 drivers.info()
@@ -80,13 +93,13 @@ races.info()
 ### Dropping rows with NA values 
 pit_stops_cleaned = pit_stops.dropna()
 
-### Grouping cleaned df by driverId and getting mean
-average_driver_race = pit_stops_cleaned.groupby(['driverId','raceId'])[['milliseconds']].mean()
+### Grouping cleaned df by driverId and raceId to get mean milliseconds of each driver for each race
+average_driver_race = pd.DataFrame(pit_stops_cleaned.groupby(['driverId','raceId'])[['milliseconds']].mean())
 
-### Rounding milliseconds up
-average_driver_race.milliseconds = average_driver_race.milliseconds.round()
+### Creating new column where milliseconds is converted to seconds
+average_driver_race[['average_seconds']] = round((average_driver_race[['milliseconds']] * .001), 2)
 
-average_driver_race
+average_driver_race.head()
 
 # COMMAND ----------
 
@@ -103,8 +116,8 @@ race_name = races[['raceId', 'name']]
 driver_race_results = race_results.merge(driver_info, how = "left", on = 'driverId')
 
 ### Merging average driver time df with merged race_results
-merged_avg = pd.merge(average_driver_race, driver_race_results, how = "left", on = ['driverId', 'raceId'])
-merged_avg.head()
+average_driver_names = average_driver_race.merge(driver_race_results, how = "left", on = ['driverId', 'raceId'])
+average_driver_names.head()
 
 # COMMAND ----------
 
@@ -113,13 +126,15 @@ merged_avg.head()
 # COMMAND ----------
 
 ### Merging race name into df
-merged_avg_race = pd.merge(merged_avg, race_name, how = 'left', on = 'raceId')
+merged_avg_race = average_driver_names.merge(race_name, how = 'left', on = 'raceId')
 
 ### Ranking average time spent at pit stop based on who won race
 merged_avg_race['pit_time_rank'] = merged_avg_race.groupby(['name','rank'])['milliseconds'].rank(method = 'max')
 
 ### Changing name of name colum to race name
 merged_avg_race.rename(columns = {'name':'race_name'}, inplace = True)
+
+merged_avg_race.head()
 
 # COMMAND ----------
 
@@ -134,8 +149,8 @@ driver_code = drivers[['driverId', 'code']]
 driver_code.dropna()
 
 ### Insert driver codes based on driver df
-code_merged_df = pd.merge(merged_avg_race, driver_code, how = 'left', on = 'driverId')
-code_merged_df.info()
+code_merged_df = merged_avg_race.merge(driver_code, how = 'left', on = 'driverId')
+code_merged_df.head()
 
 # COMMAND ----------
 
@@ -156,7 +171,7 @@ dob_merged_df = pd.merge(code_merged_df, driver_dob, how = 'left', on = 'driverI
 race_dob_merged = pd.merge(dob_merged_df, race_date, how = 'left', on = 'raceId')
 
 ### renaming date to race_date
-race_dob_merged.rename(columns = {'date':'race_date'}, inplace = True)
+race_dob_merged = race_dob_merged.rename(columns = {'date':'race_date'})
 
 ### Converting to dob and race date to DateTime
 race_dob_merged['dob'] = pd.to_datetime(race_dob_merged['dob'])
@@ -164,17 +179,24 @@ race_dob_merged['race_date'] = pd.to_datetime(race_dob_merged['race_date'])
 
 ### Calcualting age
 race_dob_merged['age_at_race'] = race_dob_merged['race_date'] - race_dob_merged['dob']
-race_dob_merged = race_dob_merged.astype({'age_at_race':'int'})
+race_dob_merged['age_at_race'] = round(race_dob_merged['age_at_race'] / np.timedelta64(1,'Y'), 2)
 
-race_dob_merged.info()
+### Converting age to years
+race_dob_merged.head()
 
 # COMMAND ----------
 
 ### Ranking youngest and oldest driver for each race
-### Ranking average time spent at pit stop based on who won race
 race_dob_merged['age_rank'] = race_dob_merged.groupby(['raceId'])['age_at_race'].rank(method = 'max')
 
-youngest_oldest_race = race_dob_merged.groupby(['raceId'])['age_rank'].agg(['min', 'max'])
+### Creating df of youngest_racers
+youngest_racers = race_dob_merged.groupby(['raceId']).head()
+youngest_racers.head()
 
-youngest_oldest_race
+### Creating df of oldest_racers
+oldest_racers = race_dob_merged.groupby(['raceId']).tail()
+oldest_racers
 
+# COMMAND ----------
+
+# MAGIC %md ## 5. For a given race, which driver has the most wins and losses?
