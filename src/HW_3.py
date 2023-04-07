@@ -92,7 +92,8 @@ results[['raceId', 'driverId', 'rank']]
 # COMMAND ----------
 
 ### Looking at results df
-results.head()
+check = results[results['rank'] == 1]
+check.groupby('driverId').count()
 
 # COMMAND ----------
 
@@ -208,12 +209,15 @@ race_dob_merged.head()
 ### Ranking youngest and oldest driver for each race
 race_dob_merged['age_rank'] = race_dob_merged.groupby(['raceId'])['age_at_race'].rank(method = 'max')
 
+
 ### Creating df of youngest_racers
-youngest_racers = race_dob_merged.groupby(['raceId']).head()
+youngest_racers = race_dob_merged[race_dob_merged['age_rank']== 1]
 youngest_racers.head()
 
+# COMMAND ----------
+
 ### Creating df of oldest_racers
-oldest_racers = race_dob_merged.groupby(['raceId']).tail()
+oldest_racers = race_dob_merged['age_rank'].max()
 oldest_racers
 
 # COMMAND ----------
@@ -229,35 +233,66 @@ results['rank'] = pd.to_numeric(results['rank'], errors = 'coerce')
 results['rank'].unique()
 results.info()
 
-### Converting column to float
+wins = results[results['rank'] == 1]
+
+# COMMAND ----------
+
+### Pulling df of count of wins for each driver
+wins = results[results['rank'] == 1]
+wins_df = wins.groupby('driverId').count()
+wins_df_cleaned = wins_df[['rank']]
+
+### Renaming column name, since we are just seeing count of times
+wins_df_cleaned = wins_df_cleaned.rename(columns = {'rank':'count_of_wins'})
+
+wins_df_cleaned
+
+# COMMAND ----------
+
+### Pulling df of count of losses for each driver
+losses = results[results['rank'] != 1]
+losses_df = losses.groupby('driverId').count()
+losses_df_cleaned = losses_df[['rank']]
+
+### Renaming column name, since we are just seeing count of times
+losses_df_cleaned = losses_df_cleaned.rename(columns = {'rank':'count_of_losses'})
+
+losses_df_cleaned
+
+# COMMAND ----------
+
+### Creating new df merging driver_win df with driver_loss df
+driver_wins_losses_merge = wins_df_cleaned.merge(losses_df_cleaned, how = 'left', on= 'driverId')
+
+driver_wins_losses_merge
+
+# COMMAND ----------
+
+### Merging wins and losses counts with main df
+exploratory_df = race_dob_merged.merge(driver_wins_losses_merge, how = 'left', on = 'driverId')
+
+exploratory_df
+
+# COMMAND ----------
+
+### Creating new variable in main df by which drivers had most wins for each race
+exploratory_df['wins_rank'] = exploratory_df.groupby(['raceId'])['count_of_wins'].rank(method = 'max')
+
+### Creating new variable in main df by which drivers has most losses for each race
+exploratory_df['loss_rank'] = exploratory_df.groupby(['raceId'])['count_of_losses'].rank(method = 'max')
+
+exploratory_df
+
+# COMMAND ----------
+
+### Creating df of drivers with most wins by race
+most_wins_df = exploratory_df[exploratory_df['wins_rank']== 1]
+most_wins_df
 
 
 # COMMAND ----------
 
-### Aggregating results data to sum the number of wins each driver had
-list_of_dict = {}
-
-for index, rows in results.iterrows():
-    list_of_dict[rows['driverId']] = {
-        'wins': 0, 
-        'losses': 0
-    }
-    try:
-        int(rows['rank']) == 1
-        list_of_dict[rows['driverId']]['wins'] += 1
-    except ValueError:
-        x  = 0
-    else:
-        int(rows['rank']) > 1
-        list_of_dict[rows['driverId']]['losses'] +=1
-        
-        
-
-# COMMAND ----------
-
-### Checking dictionary
-list_of_dict
-
-# COMMAND ----------
-
+### Creating df of drivers with most losses by race
+most_losses_df = exploratory_df[exploratory_df['loss_rank']== 1]
+most_losses_df
 
