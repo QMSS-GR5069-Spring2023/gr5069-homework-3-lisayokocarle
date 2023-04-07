@@ -65,18 +65,22 @@ drivers.info()
 
 # COMMAND ----------
 
+### Looking at status df
 status.head()
 
 # COMMAND ----------
 
+### Looking at Driver df
 driver_standings
 
 # COMMAND ----------
 
+### Looking at constructor df
 constructors.head()
 
 # COMMAND ----------
 
+### Looking at seasons df
 seasons.head()
 
 # COMMAND ----------
@@ -92,8 +96,7 @@ results[['raceId', 'driverId', 'rank']]
 # COMMAND ----------
 
 ### Looking at results df
-check = results[results['rank'] == 1]
-check.groupby('driverId').count()
+results
 
 # COMMAND ----------
 
@@ -158,7 +161,7 @@ merged_avg_race.head()
 
 # COMMAND ----------
 
-# MAGIC %md ## 3. Insert the missing code for drivers based on the 'drivers' dataset
+# MAGIC %md ### 3. Insert the missing code for drivers based on the 'drivers' dataset
 
 # COMMAND ----------
 
@@ -174,7 +177,7 @@ code_merged_df.head()
 
 # COMMAND ----------
 
-# MAGIC %md ## 4. Who is the youngest and oldest driver for each race? Create a new column named "Age"
+# MAGIC %md ### 4. Who is the youngest and oldest driver for each race? Create a new column named "Age"
 
 # COMMAND ----------
 
@@ -222,7 +225,7 @@ oldest_racers
 
 # COMMAND ----------
 
-# MAGIC %md ## 5. For a given race, which driver has the most wins and losses?
+# MAGIC %md ### 5. For a given race, which driver has the most wins and losses?
 
 # COMMAND ----------
 
@@ -299,7 +302,7 @@ most_losses_df
 
 # COMMAND ----------
 
-# MAGIC %md ## 6). Who had the fastest pit stop times in each country? Who had the slowest?
+# MAGIC %md ### 6). Who had the fastest pit stop times in each country? Who had the slowest?
 
 # COMMAND ----------
 
