@@ -217,7 +217,7 @@ youngest_racers.head()
 # COMMAND ----------
 
 ### Creating df of oldest_racers
-oldest_racers = race_dob_merged['age_rank'].max()
+oldest_racers = race_dob_merged.groupby('raceId')['age_rank', 'driverId', 'forename', 'surname'].tail()
 oldest_racers
 
 # COMMAND ----------
@@ -296,3 +296,35 @@ most_wins_df
 most_losses_df = exploratory_df[exploratory_df['loss_rank']== 1]
 most_losses_df
 
+
+# COMMAND ----------
+
+# MAGIC %md ## 6). Who had the fastest pit stop times in each country? Who had the slowest?
+
+# COMMAND ----------
+
+### Merging exploratory_df with driver nationality
+drivers_nationality = drivers[['driverId', 'nationality']]
+country_df = exploratory_df.merge(drivers_nationality, how = 'left', on = 'driverId')
+country_df
+
+# COMMAND ----------
+
+### Creating ranking of countries with fastest pits stops
+country_df['fastest_country'] = country_df.groupby('nationality')['average_seconds'].rank()
+
+country_df
+
+# COMMAND ----------
+
+###Sorting values based on ranking of countries with fastest pit times
+sorted_countries_fastest = country_df[country_df['fastest_country'] == 1].sort_values('average_seconds')
+
+sorted_countries_fastest
+
+# COMMAND ----------
+
+### Sorting data based on countries with slowest pit stops
+sorted_countries_slowest = country_df.groupby('nationality')['fastest_country', 'nationality'].tail()
+
+sorted_countries_slowest
