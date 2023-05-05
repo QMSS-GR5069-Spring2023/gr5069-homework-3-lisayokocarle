@@ -19,9 +19,12 @@ import io
 import os
 import datetime as dt
 import awswrangler as wr
+import matplotlib.pyplot as plt
 
 
-pd.__version__
+!pip install s3fs 
+
+
 
 # COMMAND ----------
 
@@ -48,7 +51,11 @@ status = wr.s3.read_csv('s3://columbia-gr5069-main/raw/status.csv')
 
 # COMMAND ----------
 
-# MAGIC %md ## Explore
+# MAGIC %md # Explore
+
+# COMMAND ----------
+
+sprint_results.head()
 
 # COMMAND ----------
 
@@ -86,7 +93,7 @@ seasons.head()
 # COMMAND ----------
 
 ### Looking at results df
-results.info()
+display(results)
 
 # COMMAND ----------
 
@@ -101,11 +108,11 @@ results
 # COMMAND ----------
 
 ### Looking at races df
-races.info()
+races
 
 # COMMAND ----------
 
-# MAGIC %md ## Transform
+# MAGIC %md # Transform
 
 # COMMAND ----------
 
@@ -130,7 +137,7 @@ average_driver_race.head()
 driver_info = drivers[['driverId', 'forename', 'surname']]
 
 ### Pulling out race results from results df
-race_results = results[['raceId', 'driverId', 'rank']]
+race_results = results[['raceId', 'driverId', 'position']]
 
 ### Pulling out race name from races df
 race_name = races[['raceId', 'name']]
@@ -140,6 +147,10 @@ driver_race_results = race_results.merge(driver_info, how = "left", on = 'driver
 
 ### Merging average driver time df with merged race_results
 average_driver_names = average_driver_race.merge(driver_race_results, how = "left", on = ['driverId', 'raceId'])
+
+
+# COMMAND ----------
+
 average_driver_names.head()
 
 # COMMAND ----------
@@ -148,16 +159,37 @@ average_driver_names.head()
 
 # COMMAND ----------
 
+### Dropping '\\N' values from average driver df 
+average_driver_names['position'] = average_driver_names['position'].replace('\\N', np.nan)
+average_driver_names = average_driver_names.dropna()
+
+
+# COMMAND ----------
+
+### Converting rank column into integers
+average_driver_names['position'] = average_driver_names['position'].astype('int')
+
+# COMMAND ----------
+
+### Filtering average driver time df for winners
+race_winners = average_driver_names[average_driver_names['position'] == 1]
+
+# COMMAND ----------
+
+race_winners
+
+# COMMAND ----------
+
 ### Merging race name into df
-merged_avg_race = average_driver_names.merge(race_name, how = 'left', on = 'raceId')
+merged_avg_race = race_winners.merge(race_name, how = 'left', on = 'raceId')
 
 ### Ranking average time spent at pit stop based on who won race
-merged_avg_race['pit_time_rank'] = merged_avg_race.groupby(['name','rank'])['milliseconds'].rank(method = 'max')
+merged_avg_race['pit_time_rank'] = merged_avg_race['average_seconds'].rank(method = 'min')
 
 ### Changing name of name colum to race name
 merged_avg_race.rename(columns = {'name':'race_name'}, inplace = True)
 
-merged_avg_race.head()
+merged_avg_race
 
 # COMMAND ----------
 
@@ -171,8 +203,10 @@ driver_code = drivers[['driverId', 'code']]
 ### seeing if there were any NA columns
 driver_code.dropna()
 
+average_driver_names = average_driver_names.merge(race_name, how = 'left', on = 'raceId')
+
 ### Insert driver codes based on driver df
-code_merged_df = merged_avg_race.merge(driver_code, how = 'left', on = 'driverId')
+code_merged_df = average_driver_names.merge(driver_code, how = 'left', on = 'driverId')
 code_merged_df.head()
 
 # COMMAND ----------
@@ -219,9 +253,30 @@ youngest_racers.head()
 
 # COMMAND ----------
 
+display(youngest_racers)
+
+# COMMAND ----------
+
 ### Creating df of oldest_racers
-oldest_racers = race_dob_merged.groupby('raceId')['age_rank', 'driverId', 'forename', 'surname'].tail()
-oldest_racers
+oldest_idx= race_dob_merged.groupby('raceId')['age_rank'].transform(max) == race_dob_merged['age_rank']
+
+oldest_racers = race_dob_merged[oldest_idx]
+
+# COMMAND ----------
+
+### Combining the df of youngest and oldest racer in each race
+
+oldest_youngestdf = [youngest_racers, oldest_racers]
+
+oldest_youngestdf = pd.concat(oldest_youngestdf)
+
+# COMMAND ----------
+
+### Table of youngest and oldest driver of each race
+
+oldest_youngestdf = oldest_youngestdf[['raceId', 'forename', 'surname', 'name', 'code', 'age_at_race']]
+
+display(oldest_youngestdf)
 
 # COMMAND ----------
 
@@ -331,3 +386,16 @@ sorted_countries_fastest
 sorted_countries_slowest = country_df.groupby('nationality')['fastest_country', 'nationality'].tail()
 
 sorted_countries_slowest
+
+# COMMAND ----------
+
+# MAGIC %md # Load
+
+# COMMAND ----------
+
+### Loading data transformed here to amazon s3 bucket
+youngest_racers.to_csv('s3://lyc2121-gr5069/processed/HW3/')
+
+# COMMAND ----------
+
+
