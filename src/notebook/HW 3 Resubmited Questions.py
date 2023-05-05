@@ -205,7 +205,7 @@ oldest_youngestdf = pd.concat(oldest_youngestdf)
 # COMMAND ----------
 
 ### Table of youngest and oldest driver of each race
-oldest_youngestdf = oldest_youngestdf[['raceId', 'forename', 'surname', 'name', 'age_at_race']]
+oldest_youngestdf = oldest_youngestdf[['raceId', 'driverId', 'forename', 'surname', 'name', 'age_at_race']]
 
 display(oldest_youngestdf)
 
