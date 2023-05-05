@@ -389,13 +389,4 @@ sorted_countries_slowest
 
 # COMMAND ----------
 
-# MAGIC %md # Load
-
-# COMMAND ----------
-
-### Loading data transformed here to amazon s3 bucket
-youngest_racers.to_csv('s3://lyc2121-gr5069/processed/HW3/')
-
-# COMMAND ----------
-
 
