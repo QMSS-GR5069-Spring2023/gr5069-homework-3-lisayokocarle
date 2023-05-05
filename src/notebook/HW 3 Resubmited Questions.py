@@ -47,7 +47,11 @@ races
 
 # COMMAND ----------
 
-pit_stops_cleaned.info()
+results
+
+# COMMAND ----------
+
+pit_stops_cleaned
 
 # COMMAND ----------
 
@@ -71,7 +75,7 @@ races.info()
 
 # COMMAND ----------
 
-results
+results[results['position']== "1"]['raceId'].nunique()
 
 # COMMAND ----------
 
@@ -83,7 +87,7 @@ results
 pit_stops_cleaned = pit_stops.dropna()
 
 ### Grouping cleaned df by driverId and raceId to get mean milliseconds of each driver for each race
-average_driver_race = pd.DataFrame(pit_stops_cleaned.groupby(['driverId','raceId'])[['milliseconds']].mean())
+average_driver_race = pd.DataFrame(pit_stops_cleaned.groupby(['driverId'])[['milliseconds']].mean())
 
 ### Creating new column where milliseconds is converted to seconds
 average_driver_race[['average_seconds']] = round((average_driver_race[['milliseconds']] * .001), 2)
@@ -109,14 +113,22 @@ race_name = races[['raceId', 'name']]
 driver_race_results = race_results.merge(driver_info, how = "left", on = 'driverId')
 
 ### Merging average driver time df with merged race_results
-average_driver_names = driver_race_results.merge(average_driver_ungrouped, how = "left", on = ['driverId', 'raceId'])
+average_driver_names = driver_race_results.merge(average_driver_ungrouped, how = "left", on = ['driverId'])
 
+
+# COMMAND ----------
+
+average_driver_names['raceId'].nunique()
 
 # COMMAND ----------
 
 ### Dropping '\\N' values from average driver df 
 average_driver_names['position'] = average_driver_names['position'].replace('\\N', np.nan)
-average_driver_names = average_driver_names.dropna()
+average_driver_names = average_driver_names[average_driver_names['position'].notnull()]
+
+# COMMAND ----------
+
+average_driver_names
 
 # COMMAND ----------
 
@@ -139,7 +151,17 @@ merged_avg_race['pit_time_rank'] = merged_avg_race['average_seconds'].rank(metho
 ### Changing name of name colum to race name
 merged_avg_race.rename(columns = {'name':'race_name'}, inplace = True)
 
-merged_avg_race
+###Dropping all null pit time rank values
+merged_avg_race = merged_avg_race[merged_avg_race['pit_time_rank'].notnull()]
+
+
+# COMMAND ----------
+
+# MAGIC %md As you can see from the table below, it is hard to actually rank the average time spent at the pit stop in order of who won each race, because the pit stop data is missing data for a lot of races. I tried to preserve all of the races, but there was a lot of missing pit stop time data. So, in the end we only have a ranking of 439 rows, and of those rows there are a lot of ties. I also chose to average the pit stop times exclusively by driver, because if I were to average by race and driver there would be even more null rows of data to merge with the race result data. 
+
+# COMMAND ----------
+
+display(merged_avg_race)
 
 # COMMAND ----------
 
